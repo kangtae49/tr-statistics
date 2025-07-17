@@ -29,3 +29,9 @@ For Android development, run:
   pnpm tauri android dev
 
 ```
+
+## publish
+
+```sh
+pnpm tauri build
+```
