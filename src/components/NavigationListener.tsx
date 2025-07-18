@@ -1,7 +1,4 @@
-import {createHashRouter, RouterProvider, useNavigate} from 'react-router-dom';
-import HomeView from "@/components/HomeView.tsx";
-import AboutView from "@/components/AboutView.tsx";
-import ErrorView from "@/components/ErrorView.tsx";
+import {useNavigate} from 'react-router-dom';
 import {useEffect} from "react";
 import {listen} from "@tauri-apps/api/event";
 

@@ -9,9 +9,17 @@ pub fn create_menu(app: &mut App) -> Result<()> {
         .text("quit", "Quit")
         .build()?;
 
-    let menu = MenuBuilder::new(app)
-        .items(&[&file_menu])
+    let help_menu = SubmenuBuilder::new(app, "Help")
         .text("about", "About")
+        .build()?;
+
+    let sample_menu = SubmenuBuilder::new(app, "Sample")
+        .text("bar-chart", "Bar Chart")
+        .text("line-chart", "Line Chart")
+        .build()?;
+
+    let menu = MenuBuilder::new(app)
+        .items(&[&file_menu, &sample_menu, &help_menu])
         .build()?;
     app.set_menu(menu)?;
 
@@ -32,6 +40,14 @@ pub fn create_menu(app: &mut App) -> Result<()> {
             "about" => {
                 println!("about event");
                 app_handle.emit("navigate", "/about").unwrap();
+            }
+            "bar-chart" => {
+                println!("bar-chart event");
+                app_handle.emit("navigate", "/bar-chart").unwrap();
+            }
+            "line-chart" => {
+                println!("line-chart event");
+                app_handle.emit("navigate", "/line-chart").unwrap();
             }
             _ => {
                 println!("unexpected menu event");
