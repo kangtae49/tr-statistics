@@ -30,8 +30,14 @@ For Android development, run:
 
 ```
 
+## icon
+```sh
+cargo tauri icon .\icons\statistics.svg
+```
+
 ## publish
 
 ```sh
 pnpm tauri build
 ```
+

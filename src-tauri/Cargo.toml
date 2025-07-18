@@ -38,6 +38,8 @@ sysinfo = "0.36.0"
 windows = { version = "0.61.3", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
 jsonpath_lib = "0.3.0"
 sanitize-filename = "0.6.0"
-
+reqwest = "0.12.22"
+glob = "0.3.2"
+schemars = { version = "1.0.4", features = ["indexmap2"] }
 
 

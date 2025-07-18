@@ -1,0 +1,37 @@
+use tauri::App;
+use tauri::menu::{MenuBuilder, SubmenuBuilder};
+use crate::err::Result;
+
+pub fn create_menu(app: &mut App) -> Result<()> {
+    let file_menu = SubmenuBuilder::new(app, "File")
+        .text("open", "Open")
+        .text("quit", "Quit")
+        .build()?;
+
+    let menu = MenuBuilder::new(app)
+        .items(&[&file_menu])
+        .text("about", "About")
+        .build()?;
+    app.set_menu(menu)?;
+
+    app.on_menu_event(move |app_handle: &tauri::AppHandle, event| {
+        println!("menu event: {:?}", event.id());
+        match event.id().0.as_str() {
+            "open" => {
+                println!("open event");
+            }
+            "quit" => {
+                println!("quit event");
+                app_handle.exit(0);
+            }
+            "about" => {
+                println!("about event");
+            }
+            _ => {
+                println!("unexpected menu event");
+            }
+        }
+    });
+
+    Ok(())
+}
