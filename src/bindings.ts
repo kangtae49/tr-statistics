@@ -5,8 +5,21 @@
 
 
 export const commands = {
-async greet(name: string) : Promise<string> {
-    return await TAURI_INVOKE("greet", { name });
+async runShell(shellJob: ShellJob) : Promise<Result<null, ApiError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("run_shell", { shellJob }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async stopShell(taskId: string) : Promise<Result<null, ApiError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_shell", { taskId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -20,7 +33,9 @@ async greet(name: string) : Promise<string> {
 
 /** user-defined types **/
 
-
+export type ApiError = { Error: string } | { TauriError: string } | { ReqwestError: string } | { Io: string } | { ParseError: string } | { JsonError: string } | { GlobError: string }
+export type ShellJob = { task_id: string; shell_type: ShellType; args: string[]; shell?: string | null; working_dir?: string | null; encoding?: string | null }
+export type ShellType = "Cmd" | "Powershell" | "Python"
 
 /** tauri-specta globals **/
 

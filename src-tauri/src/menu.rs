@@ -1,4 +1,4 @@
-use tauri::{App, Emitter, Manager};
+use tauri::{App, Emitter};
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
 use crate::err::Result;
 
