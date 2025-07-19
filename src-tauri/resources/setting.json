@@ -1,0 +1,6 @@
+{
+  "$schema": "./setting.schema.json",
+  "script_files": [
+    "hello.py"
+  ]
+}

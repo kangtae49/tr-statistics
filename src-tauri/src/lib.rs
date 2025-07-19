@@ -1,6 +1,9 @@
 mod err;
 mod menu;
 mod app_state;
+mod setting;
+mod utils;
+
 mod tasks {
     pub mod shell_task;
 }
@@ -14,9 +17,18 @@ use crate::app_state::AppState;
 use crate::menu::create_menu;
 use crate::err::Result;
 use crate::tasks::shell_task::{stop, ShellJob, TaskNotify, TaskStatus};
-
+use crate::setting::{Setting};
+use crate::utils::get_resource_path;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
+#[tauri::command]
+#[specta::specta]
+async fn get_setting() -> Result<Setting> {
+    let resource_path = get_resource_path()?;
+    let json_str = std::fs::read_to_string(resource_path.join("setting.json"))?;
+    let setting = serde_json::from_str::<Setting>(&json_str)?;
+    Ok(setting)
+}
 
 #[tauri::command]
 #[specta::specta]
@@ -29,11 +41,11 @@ async fn run_shell(state: State<'_, AppState>, window: tauri::Window, shell_job:
         message: "Begin".to_string(),
     })?;
     match shell_task.run(state, window.clone()).await {
-        Ok(code) => {
+        Ok(exit_code) => {
             window.emit(tasks::shell_task::EVENT_NAME, TaskNotify {
                 task_id: shell_task.task_id.clone(),
                 task_status: TaskStatus::End,
-                exit_code: code,
+                exit_code,
                 message: "End".to_string(),
             })?;
         }
@@ -45,7 +57,7 @@ async fn run_shell(state: State<'_, AppState>, window: tauri::Window, shell_job:
                 message: e.to_string(),
             })?;
         },
-    }
+    };
     Ok(())
 }
 
@@ -58,7 +70,7 @@ async fn stop_shell(state: State<'_, AppState>, task_id: String) -> Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
-        run_shell, stop_shell
+        run_shell, stop_shell, get_setting
     ]);
 
     #[cfg(debug_assertions)]
@@ -70,6 +82,19 @@ pub fn run() {
         builder
             .export(ts, "../src/bindings.ts")
             .expect("Failed to export typescript bindings");
+
+        let schema = schemars::schema_for!(Setting);
+        let json_schema = serde_json::to_string_pretty(&schema).unwrap();
+        let resource_path = get_resource_path().expect("err get_resource_path");
+        let setting_path = resource_path.join("setting.schema.json");
+        let old_json_schema = match std::fs::read_to_string(setting_path.clone()) {
+            Ok(schema) => { schema }
+            Err(_e) => { "".to_string() }
+        };
+        if json_schema != old_json_schema {
+            let _ =
+                std::fs::write(setting_path.clone(), json_schema).map_err(|e| println!("{:?}", e));
+        }
     }
 
     tauri::Builder::default()

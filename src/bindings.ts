@@ -20,6 +20,14 @@ async stopShell(taskId: string) : Promise<Result<null, ApiError>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async getSetting() : Promise<Result<Setting, ApiError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_setting") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -34,6 +42,7 @@ async stopShell(taskId: string) : Promise<Result<null, ApiError>> {
 /** user-defined types **/
 
 export type ApiError = { Error: string } | { TauriError: string } | { ReqwestError: string } | { Io: string } | { ParseError: string } | { JsonError: string } | { GlobError: string }
+export type Setting = { script_files: string[] }
 export type ShellJob = { task_id: string; shell_type: ShellType; args: string[]; shell?: string | null; working_dir?: string | null; encoding?: string | null }
 export type ShellType = "Cmd" | "Powershell" | "Python"
 

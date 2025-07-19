@@ -1,4 +1,4 @@
-use std::env;
+use std::io::Write;
 use std::path::{absolute, Path};
 use std::process::Stdio;
 use std::sync::Arc;
@@ -16,6 +16,7 @@ use tauri::{Emitter, State};
 
 use crate::err::{Result, ApiError};
 use crate::app_state::AppState;
+use crate::utils::get_resource_path;
 
 #[skip_serializing_none]
 #[serde_as]
@@ -62,11 +63,12 @@ pub struct ShellJob {
 impl ShellJob {
     pub fn make_task(&self) -> Result<ShellTask> {
         let job = self.clone();
-        let exe_path = env::current_exe()?;
-        let base_path = exe_path.parent().ok_or(ApiError::Error("err parent".to_string()))?;
+        let resource_path = get_resource_path()?;
+        // let exe_path = env::current_exe()?;
+        // let base_path = exe_path.parent().ok_or(ApiError::Error("err parent".to_string()))?;
         let shell = match &job.shell_type {
             ShellType::Python => {
-                let python_path = base_path.join("resources/src-python/.venv/Scripts/python.exe");
+                let python_path = resource_path.join("src-python/.venv/Scripts/python.exe");
                 let python_abs = absolute(python_path)?;
 
                 match &job.shell {
@@ -91,7 +93,7 @@ impl ShellJob {
         let working_dir = match &job.working_dir {
             Some(s) => s.clone(),
             None => {
-                let working_path = base_path.join("resources/src-python");
+                let working_path = resource_path.join("src-python");
                 working_path.to_string_lossy().to_string()
             },
         };
@@ -103,7 +105,6 @@ impl ShellJob {
 
         Ok(ShellTask {
             task_id: job.task_id.clone(),
-            shell_type: job.shell_type.clone(),
             shell,
             args: job.args.clone(),
             working_dir,
@@ -113,10 +114,11 @@ impl ShellJob {
     }
 }
 
-#[derive(Clone, Debug)]
+#[skip_serializing_none]
+#[serde_as]
+#[derive(Type, Serialize, Deserialize, Clone, Debug)]
 pub struct ShellTask {
     pub task_id: String,
-    pub shell_type: ShellType,
     pub shell: String,
     pub args: Vec<String>,
     pub working_dir: String,
@@ -153,8 +155,8 @@ impl ShellTask {
             exit_code: None,
             message: "".to_string(),
         })?;
-        let mut child = child_arc.write().await;
         let (stdout, stderr) = {
+            let mut child = child_arc.write().await;
             let stdout = child.stdout
                 .take()
                 .ok_or_else(|| ApiError::Error("Failed to capture stdout".into()))?;
@@ -163,7 +165,6 @@ impl ShellTask {
                 .ok_or_else(|| ApiError::Error("Failed to capture stderr".into()))?;
             (stdout, stderr)
         };
-        drop(child);
 
         let encoding_ref = encoding_from_whatwg_label(&self.encoding)
             .unwrap_or(encoding::all::UTF_8);
@@ -174,6 +175,9 @@ impl ShellTask {
             let mut child = child_arc.write().await;
             child.wait().await?
         };
+
+        shell_handles.write().await
+            .remove(&self.task_id.clone());
         Ok(status.code())
     }
 
@@ -181,7 +185,8 @@ impl ShellTask {
 
 pub async fn stop(state: State<'_, AppState>, task_id: String) -> Result<()>  {
     println!("stop before: {:?}", &task_id);
-    if let Some(child_arc) = state.shell_handles.write().await.remove(&task_id) {
+    let mut shell_handles = state.shell_handles.write().await;
+    if let Some(child_arc) = shell_handles.remove(&task_id) {
         let mut child = child_arc.write().await;
         child.kill().await?;
     } else {
@@ -199,6 +204,8 @@ fn get_stdout<T: AsyncRead + Unpin + Send + 'static>(out: T, task_status: TaskSt
                 .decode(line.as_bytes(), DecoderTrap::Replace)
                 .unwrap_or_else(|_| "<decoding error>".to_string());
             println!("{:?}", decoded.clone());
+            tokio::task::yield_now().await;
+            std::io::stdout().flush().unwrap();
             if let Err(e) = window.emit(EVENT_NAME, TaskNotify {
                 task_id: task_id.clone(),
                 task_status: task_status.clone(),
