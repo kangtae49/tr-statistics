@@ -2,12 +2,11 @@ use std::io::Write;
 use std::path::{absolute, Path};
 use std::process::Stdio;
 use std::sync::Arc;
-
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
 use tokio::process::Command;
-use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader as AsyncBufReader};
-use encoding::{DecoderTrap, EncodingRef};
+use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
+use encoding::{DecoderTrap, Encoding, EncodingRef};
 use encoding::label::encoding_from_whatwg_label;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, skip_serializing_none};
@@ -100,8 +99,12 @@ impl ShellJob {
 
         let encoding = match &job.encoding {
             Some(s) => s.clone(),
-            None => "windows_949".to_string(),
+            None => encoding::all::WINDOWS_949.name().to_string(),
         };
+
+
+
+
 
         Ok(ShellTask {
             task_id: job.task_id.clone(),
@@ -167,7 +170,9 @@ impl ShellTask {
         };
 
         let encoding_ref = encoding_from_whatwg_label(&self.encoding)
-            .unwrap_or(encoding::all::UTF_8);
+            .unwrap_or(encoding::all::WINDOWS_949);
+
+        println!("encoding: {:?}", &encoding_ref.name());
         let stdout_task = get_stdout(stdout, TaskStatus::Stdout, self.task_id.clone(), window.clone(), encoding_ref);
         let stderr_task = get_stdout(stderr, TaskStatus::Stderr, self.task_id.clone(), window.clone(), encoding_ref);
         let _ = tokio::join!(stdout_task, stderr_task);
@@ -198,10 +203,15 @@ pub async fn stop(state: State<'_, AppState>, task_id: String) -> Result<()>  {
 
 fn get_stdout<T: AsyncRead + Unpin + Send + 'static>(out: T, task_status: TaskStatus, task_id: String, window: tauri::Window, encoding_ref: EncodingRef) -> JoinHandle<()> {
     tokio::spawn(async move {
-        let mut reader = AsyncBufReader::new(out).lines();
-        while let Ok(Some(line)) = reader.next_line().await {
+        let mut reader = BufReader::new(out);
+        let mut buffer = Vec::new();
+        while let Ok(n) = reader.read_until(b'\n', &mut buffer).await {
+            if n == 0 {
+                break;
+            }
+
             let decoded = encoding_ref
-                .decode(line.as_bytes(), DecoderTrap::Replace)
+                .decode(&buffer, DecoderTrap::Replace)
                 .unwrap_or_else(|_| "<decoding error>".to_string());
             println!("{:?}", decoded.clone());
             tokio::task::yield_now().await;
@@ -214,6 +224,7 @@ fn get_stdout<T: AsyncRead + Unpin + Send + 'static>(out: T, task_status: TaskSt
             }) {
                 println!("{:?}", e);
             };
+            buffer.clear();
         }
         println!("done: {:?}", task_status);
     })

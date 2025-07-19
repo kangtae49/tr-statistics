@@ -18,14 +18,25 @@ use crate::menu::create_menu;
 use crate::err::Result;
 use crate::tasks::shell_task::{stop, ShellJob, TaskNotify, TaskStatus};
 use crate::setting::{Setting};
-use crate::utils::get_resource_path;
+use crate::utils::{get_resource_path, read_txt_infer};
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
 #[tauri::command]
 #[specta::specta]
 async fn get_setting() -> Result<Setting> {
     let resource_path = get_resource_path()?;
-    let json_str = std::fs::read_to_string(resource_path.join("setting.json"))?;
+    let json_str = match read_txt_infer(resource_path.join("setting.json")).await {
+        Ok(text_content) => {
+            match text_content.text {
+                Some(text) => { text }
+                None => { "".to_string() }
+            }
+        }
+        Err(e) => {
+            println!("{:?}", e);
+            "".to_string()
+        }
+    };
     let setting = serde_json::from_str::<Setting>(&json_str)?;
     Ok(setting)
 }
@@ -68,7 +79,7 @@ async fn stop_shell(state: State<'_, AppState>, task_id: String) -> Result<()> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub async fn run() {
     let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
         run_shell, stop_shell, get_setting
     ]);
@@ -87,10 +98,25 @@ pub fn run() {
         let json_schema = serde_json::to_string_pretty(&schema).unwrap();
         let resource_path = get_resource_path().expect("err get_resource_path");
         let setting_path = resource_path.join("setting.schema.json");
-        let old_json_schema = match std::fs::read_to_string(setting_path.clone()) {
-            Ok(schema) => { schema }
-            Err(_e) => { "".to_string() }
+
+        let old_json_schema = match read_txt_infer(&setting_path).await {
+            Ok(text_content) => {
+                match text_content.text {
+                    Some(text) => { text }
+                    None => { "".to_string() }
+                }
+            }
+            Err(e) => {
+                println!("{:?}", e);
+                "".to_string()
+            }
         };
+
+
+        // let old_json_schema = match std::fs::read_to_string(setting_path.clone()) {
+        //     Ok(schema) => { schema }
+        //     Err(_e) => { "".to_string() }
+        // };
         if json_schema != old_json_schema {
             let _ =
                 std::fs::write(setting_path.clone(), json_schema).map_err(|e| println!("{:?}", e));

@@ -14,6 +14,7 @@ function HomeView() {
       task_id: py_file,
       shell_type: "Python",
       args: [py_file],
+      encoding: "windows-949"
     }).then(() => {
       console.log("ok")
     }).catch(e => {
