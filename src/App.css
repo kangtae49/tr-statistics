@@ -49,3 +49,10 @@ html, body, #root {
 .fa-circle-play:hover { transform: var(--scale); color: var(--hover-color);}
 .fa-circle-stop { color: var(--icon-color); margin-right: 5px;}
 .fa-circle-stop:hover { transform: var(--scale); color: var(--hover-color);}
+
+.input-date input {
+  width: 100px;
+}
+.react-datepicker__calendar-icon {
+  fill: var(--icon-color);
+}

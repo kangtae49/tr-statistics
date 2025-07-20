@@ -1,8 +1,8 @@
 import {createBrowserRouter} from "react-router-dom";
-import TasksView from "@/components/TasksView.tsx";
+import TasksView from "@/routes/TasksView.tsx";
 import ErrorView from "@/components/ErrorView.tsx";
-import AboutView from "@/components/AboutView.tsx";
-import RootLayout from "@/components/RootLayout.tsx";
+import AboutView from "@/routes/AboutView.tsx";
+import RootLayout from "@/routes/RootLayout.tsx";
 import GraphBarChart from "@/components/graph/GraphBarChart.tsx";
 import GraphLineChart from "@/components/graph/GraphLineChart.tsx";
 

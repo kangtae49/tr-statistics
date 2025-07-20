@@ -43,7 +43,7 @@ async getSetting() : Promise<Result<Setting, ApiError>> {
 
 export type ApiError = { Error: string } | { TauriError: string } | { ReqwestError: string } | { Io: string } | { ParseError: string } | { JsonError: string } | { GlobError: string }
 export type ArgType = "String"
-export type ScriptArg = { arg_type: ArgType; name: string; description: string; default: string; required: boolean }
+export type ScriptArg = { arg_type: ArgType; name: string; description: string; default: string }
 export type ScriptInfo = { name: string; description: string; shell_type: ShellType; script: string; args: ScriptArg[] }
 export type Setting = { script_files: ScriptInfo[] }
 export type ShellJob = { task_id: string; shell_type: ShellType; args: string[]; shell?: string | null; working_dir?: string | null; encoding?: string | null }

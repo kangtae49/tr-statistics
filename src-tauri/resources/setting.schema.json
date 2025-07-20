@@ -66,17 +66,13 @@
         },
         "default": {
           "type": "string"
-        },
-        "required": {
-          "type": "boolean"
         }
       },
       "required": [
         "arg_type",
         "name",
         "description",
-        "default",
-        "required"
+        "default"
       ]
     },
     "ArgType": {

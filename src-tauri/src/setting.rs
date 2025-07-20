@@ -17,7 +17,6 @@ pub struct ScriptArg {
     pub name: String,
     pub description: String,
     pub default: String,
-    pub required: bool,
 }
 
 #[serde_as]
