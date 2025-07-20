@@ -1,19 +1,26 @@
 use std::env;
-use std::path::{Path, PathBuf};
-use chardetng::EncodingDetector;
-use encoding_rs::Encoding;
-use mime_guess::from_path;
+use std::path::PathBuf;
+// use chardetng::EncodingDetector;
+// use encoding_rs::Encoding;
+// use mime_guess::from_path;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, skip_serializing_none};
 use specta::Type;
-use tokio::io::AsyncReadExt;
+
+// use tokio::io::AsyncReadExt;
 use crate::err::{ApiError, Result};
 
-
 pub fn get_resource_path() -> Result<PathBuf> {
-    let exe_path = env::current_exe()?;
-    let base_path = exe_path.parent().ok_or(ApiError::Error("err parent".to_string()))?;
-    Ok(base_path.join("resources"))
+    if tauri::is_dev() {
+        let current_path = env::current_dir()?;
+        Ok(current_path.join("resources"))
+    } else {
+        let current_path = env::current_exe()?;
+        let base_path = current_path
+            .parent()
+            .ok_or(ApiError::Error("err parent".to_string()))?;
+        Ok(base_path.join("resources"))
+    }
 }
 
 #[skip_serializing_none]
@@ -27,6 +34,7 @@ pub struct TextContent {
     pub text: Option<String>,
 }
 
+/*
 pub async fn read_txt_infer<P: AsRef<Path>>(path: P)-> Result<TextContent> {
     let sz = path.as_ref().metadata()?.len();
 
@@ -69,3 +77,5 @@ pub async fn read_txt_infer<P: AsRef<Path>>(path: P)-> Result<TextContent> {
     })
 
 }
+
+ */

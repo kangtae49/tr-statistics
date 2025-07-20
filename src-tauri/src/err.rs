@@ -1,9 +1,6 @@
-
-
-use thiserror::Error;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-
+use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, ApiError>;
 #[derive(Type, Serialize, Deserialize, Error, Debug)]

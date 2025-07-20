@@ -1,6 +1,20 @@
 {
   "$schema": "./setting.schema.json",
   "script_files": [
-    "hello.py"
+    {
+      "name": "테스트 작업",
+      "description": "테스트 작업 입니다.",
+      "shell_type": "Python",
+      "script": "hello.py",
+      "args": [
+        {
+          "arg_type": "String",
+          "name": "날짜",
+          "description": "YYYY-MM-DD",
+          "default": "TODAY",
+          "required": false
+        }
+      ]
+    }
   ]
 }

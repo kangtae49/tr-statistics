@@ -42,5 +42,6 @@ sanitize-filename = "0.6.0"
 reqwest = "0.12.22"
 glob = "0.3.2"
 schemars = { version = "1.0.4", features = ["indexmap2"] }
+tauri-plugin-dialog = "2"
 
 

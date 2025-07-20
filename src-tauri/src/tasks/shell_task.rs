@@ -1,21 +1,23 @@
+use encoding::{DecoderTrap, Encoding};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, skip_serializing_none};
+use specta::Type;
 use std::io::Write;
 use std::path::{absolute, Path};
 use std::process::Stdio;
 use std::sync::Arc;
+use tauri::{Emitter, State};
+use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
+use tokio::process::Command;
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
-use tokio::process::Command;
-use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
-use encoding::{DecoderTrap, Encoding, EncodingRef};
-use encoding::label::encoding_from_whatwg_label;
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none};
-use specta::Type;
-use tauri::{Emitter, State};
 
-use crate::err::{Result, ApiError};
 use crate::app_state::AppState;
+use crate::err::{ApiError, Result};
 use crate::utils::get_resource_path;
+
+pub const EVENT_NAME: &str = "shell_task";
 
 #[skip_serializing_none]
 #[serde_as]
@@ -40,7 +42,7 @@ pub enum TaskStatus {
 
 #[skip_serializing_none]
 #[serde_as]
-#[derive(Type, Serialize, Deserialize, Clone, Debug)]
+#[derive(Type, Serialize, Deserialize, JsonSchema, Clone, Debug)]
 pub enum ShellType {
     Cmd,
     Powershell,
@@ -49,7 +51,7 @@ pub enum ShellType {
 
 #[skip_serializing_none]
 #[serde_as]
-#[derive(Type, Serialize, Deserialize, Clone, Debug)]
+#[derive(Type, Serialize, Deserialize, JsonSchema, Clone, Debug)]
 pub struct ShellJob {
     pub task_id: String,
     pub shell_type: ShellType,
@@ -75,18 +77,14 @@ impl ShellJob {
                     None => python_abs.to_string_lossy().to_string(),
                 }
             }
-            ShellType::Cmd => {
-                match &job.shell {
-                    Some(s) => s.clone(),
-                    None => "cmd".to_string(),
-                }
-            }
-            ShellType::Powershell => {
-                match &job.shell {
-                    Some(s) => s.clone(),
-                    None => "powershell".to_string(),
-                }
-            }
+            ShellType::Cmd => match &job.shell {
+                Some(s) => s.clone(),
+                None => "cmd".to_string(),
+            },
+            ShellType::Powershell => match &job.shell {
+                Some(s) => s.clone(),
+                None => "powershell".to_string(),
+            },
         };
 
         let working_dir = match &job.working_dir {
@@ -94,26 +92,15 @@ impl ShellJob {
             None => {
                 let working_path = resource_path.join("src-python");
                 working_path.to_string_lossy().to_string()
-            },
+            }
         };
-
-        let encoding = match &job.encoding {
-            Some(s) => s.clone(),
-            None => encoding::all::WINDOWS_949.name().to_string(),
-        };
-
-
-
-
 
         Ok(ShellTask {
             task_id: job.task_id.clone(),
             shell,
             args: job.args.clone(),
             working_dir,
-            encoding,
         })
-
     }
 }
 
@@ -125,13 +112,14 @@ pub struct ShellTask {
     pub shell: String,
     pub args: Vec<String>,
     pub working_dir: String,
-    pub encoding: String,
 }
 
-pub const EVENT_NAME: &str = "shell_task";
-
 impl ShellTask {
-    pub async fn run(&self, state: State<'_, AppState>, window: tauri::Window) -> Result<Option<i32>>  {
+    pub async fn run(
+        &self,
+        state: State<'_, AppState>,
+        window: tauri::Window,
+    ) -> Result<Option<i32>> {
         println!("run: {:?}", &self);
 
         let folder = self.working_dir.clone();
@@ -149,46 +137,57 @@ impl ShellTask {
         let child_arc = Arc::new(RwLock::new(child));
 
         let shell_handles = Arc::clone(&state.shell_handles);
-        shell_handles.write().await
+        shell_handles
+            .write()
+            .await
             .insert(self.task_id.clone(), child_arc.clone());
 
-        window.emit(EVENT_NAME, TaskNotify {
-            task_id: self.task_id.clone(),
-            task_status: TaskStatus::Running,
-            exit_code: None,
-            message: "".to_string(),
-        })?;
+        window.emit(
+            EVENT_NAME,
+            TaskNotify {
+                task_id: self.task_id.clone(),
+                task_status: TaskStatus::Running,
+                exit_code: None,
+                message: "".to_string(),
+            },
+        )?;
         let (stdout, stderr) = {
             let mut child = child_arc.write().await;
-            let stdout = child.stdout
+            let stdout = child
+                .stdout
                 .take()
                 .ok_or_else(|| ApiError::Error("Failed to capture stdout".into()))?;
-            let stderr = child.stderr
+            let stderr = child
+                .stderr
                 .take()
                 .ok_or_else(|| ApiError::Error("Failed to capture stderr".into()))?;
             (stdout, stderr)
         };
 
-        let encoding_ref = encoding_from_whatwg_label(&self.encoding)
-            .unwrap_or(encoding::all::WINDOWS_949);
-
-        println!("encoding: {:?}", &encoding_ref.name());
-        let stdout_task = get_stdout(stdout, TaskStatus::Stdout, self.task_id.clone(), window.clone(), encoding_ref);
-        let stderr_task = get_stdout(stderr, TaskStatus::Stderr, self.task_id.clone(), window.clone(), encoding_ref);
+        let stdout_task = get_stdout(
+            stdout,
+            TaskStatus::Stdout,
+            self.task_id.clone(),
+            window.clone(),
+        );
+        let stderr_task = get_stdout(
+            stderr,
+            TaskStatus::Stderr,
+            self.task_id.clone(),
+            window.clone(),
+        );
         let _ = tokio::join!(stdout_task, stderr_task);
         let status = {
             let mut child = child_arc.write().await;
             child.wait().await?
         };
 
-        shell_handles.write().await
-            .remove(&self.task_id.clone());
+        shell_handles.write().await.remove(&self.task_id.clone());
         Ok(status.code())
     }
-
 }
 
-pub async fn stop(state: State<'_, AppState>, task_id: String) -> Result<()>  {
+pub async fn stop(state: State<'_, AppState>, task_id: String) -> Result<()> {
     println!("stop before: {:?}", &task_id);
     let mut shell_handles = state.shell_handles.write().await;
     if let Some(child_arc) = shell_handles.remove(&task_id) {
@@ -201,7 +200,12 @@ pub async fn stop(state: State<'_, AppState>, task_id: String) -> Result<()>  {
     Ok(())
 }
 
-fn get_stdout<T: AsyncRead + Unpin + Send + 'static>(out: T, task_status: TaskStatus, task_id: String, window: tauri::Window, encoding_ref: EncodingRef) -> JoinHandle<()> {
+fn get_stdout<T: AsyncRead + Unpin + Send + 'static>(
+    out: T,
+    task_status: TaskStatus,
+    task_id: String,
+    window: tauri::Window,
+) -> JoinHandle<()> {
     tokio::spawn(async move {
         let mut reader = BufReader::new(out);
         let mut buffer = Vec::new();
@@ -210,18 +214,21 @@ fn get_stdout<T: AsyncRead + Unpin + Send + 'static>(out: T, task_status: TaskSt
                 break;
             }
 
-            let decoded = encoding_ref
+            let decoded = encoding::all::WINDOWS_949
                 .decode(&buffer, DecoderTrap::Replace)
-                .unwrap_or_else(|_| "<decoding error>".to_string());
+                .unwrap_or_else(|err_txt| format!("<decoding error>: {}", err_txt));
             println!("{:?}", decoded.clone());
             tokio::task::yield_now().await;
             std::io::stdout().flush().unwrap();
-            if let Err(e) = window.emit(EVENT_NAME, TaskNotify {
-                task_id: task_id.clone(),
-                task_status: task_status.clone(),
-                exit_code: None,
-                message: decoded.clone(),
-            }) {
+            if let Err(e) = window.emit(
+                EVENT_NAME,
+                TaskNotify {
+                    task_id: task_id.clone(),
+                    task_status: task_status.clone(),
+                    exit_code: None,
+                    message: decoded.clone(),
+                },
+            ) {
                 println!("{:?}", e);
             };
             buffer.clear();

@@ -6,11 +6,84 @@
     "script_files": {
       "type": "array",
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/ScriptInfo"
       }
     }
   },
   "required": [
     "script_files"
-  ]
+  ],
+  "$defs": {
+    "ScriptInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "shell_type": {
+          "$ref": "#/$defs/ShellType"
+        },
+        "script": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScriptArg"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "shell_type",
+        "script",
+        "args"
+      ]
+    },
+    "ShellType": {
+      "type": "string",
+      "enum": [
+        "Cmd",
+        "Powershell",
+        "Python"
+      ]
+    },
+    "ScriptArg": {
+      "type": "object",
+      "properties": {
+        "arg_type": {
+          "$ref": "#/$defs/ArgType"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "arg_type",
+        "name",
+        "description",
+        "default",
+        "required"
+      ]
+    },
+    "ArgType": {
+      "type": "string",
+      "enum": [
+        "String"
+      ]
+    }
+  }
 }
