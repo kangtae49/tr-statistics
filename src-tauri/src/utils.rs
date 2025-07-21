@@ -1,5 +1,6 @@
 use std::env;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 // use chardetng::EncodingDetector;
 // use encoding_rs::Encoding;
 // use mime_guess::from_path;
@@ -33,6 +34,20 @@ pub struct TextContent {
     pub enc: Option<String>,
     pub text: Option<String>,
 }
+
+pub fn now_sec() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
+// pub fn now_ms() -> u128 {
+//     SystemTime::now()
+//         .duration_since(UNIX_EPOCH)
+//         .unwrap()
+//         .as_millis()
+// }
 
 /*
 pub async fn read_txt_infer<P: AsRef<Path>>(path: P)-> Result<TextContent> {

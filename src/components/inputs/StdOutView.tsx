@@ -1,11 +1,15 @@
 import { FixedSizeList as List } from 'react-window'
 import AutoSizer from 'react-virtualized-auto-sizer'
-import {useTaskNotifyListStore} from "@/stores/taskNotifyListStore.ts";
+import {useTaskNotifyMapStore} from "@/stores/taskNotifyMapStore.ts";
+// import { shallow } from 'zustand/shallow';
 import {useEffect, useRef} from "react";
 import { format } from 'date-fns';
+import {TaskNotify} from "@/bindings.ts";
 function StdOutView() {
-  const taskNotifyList = useTaskNotifyListStore((state) => state.taskNotifyList);
   const listRef = useRef<List>(null);
+  const task_id = "hello.py";
+  const taskNotifyMap = useTaskNotifyMapStore((state) => state.taskNotifyMap);
+  let taskNotifyList = taskNotifyMap[task_id] ?? [];
 
   useEffect(() => {
     if (listRef.current) {
@@ -26,9 +30,12 @@ function StdOutView() {
         >
           {({ index, style }) => {
             const taskNotify = taskNotifyList[index]
+            const date = new Date(taskNotify.tm_sec * 1000);
+            const date_fmt = format(date, "yyyy-MM-dd HH:mm:ss");
+
             return taskNotify ? (
-              <div key={index} style={style}>
-                [{index}] : {taskNotify.message}
+              <div className="line" key={index} style={style}>
+                {date_fmt.split(" ")[1]} : {taskNotify.message}
               </div>
             ) : null
           }}

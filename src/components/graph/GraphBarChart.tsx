@@ -1,8 +1,10 @@
 import { Bar } from "react-chartjs-2";
+import React, {useEffect, useRef} from "react";
 
 
 const options = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: {
       position: "top" as const,
@@ -27,8 +29,26 @@ const data = {
   ],
 };
 
+// type Prop = {
+//   style?: React.CSSProperties
+// }
+
 function GraphBarChart() {
+  // const chartRef = useRef<any>(null);
+  //
+  // useEffect(() => {
+  //   const handleResize = () => {
+  //     if (chartRef.current) {
+  //       chartRef.current.chartInstance?.resize();
+  //     }
+  //   };
+  //
+  //   window.addEventListener('resize', handleResize);
+  //   return () => window.removeEventListener('resize', handleResize);
+  // }, []);
+
   return (
+    // <Bar ref={chartRef} options={options} data={data} style={style}/>
     <Bar options={options} data={data} />
   )
 }

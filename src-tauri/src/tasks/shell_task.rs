@@ -12,10 +12,12 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::process::Command;
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
+use std::os::windows::process::CommandExt;
+use windows::Win32::System::Threading::CREATE_NO_WINDOW;
 
 use crate::app_state::AppState;
 use crate::err::{ApiError, Result};
-use crate::utils::get_resource_path;
+use crate::utils::{get_resource_path, now_sec};
 
 pub const EVENT_NAME: &str = "shell_task";
 
@@ -27,6 +29,7 @@ pub struct TaskNotify {
     pub task_status: TaskStatus,
     pub exit_code: Option<i32>,
     pub message: String,
+    pub tm_sec: u64,
 }
 
 #[skip_serializing_none]
@@ -133,6 +136,7 @@ impl ShellTask {
             .current_dir(self.working_dir.clone())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .creation_flags(CREATE_NO_WINDOW.0)
             .spawn()?;
         let child_arc = Arc::new(RwLock::new(child));
 
@@ -149,6 +153,7 @@ impl ShellTask {
                 task_status: TaskStatus::Running,
                 exit_code: None,
                 message: "".to_string(),
+                tm_sec: now_sec(),
             },
         )?;
         let (stdout, stderr) = {
@@ -217,7 +222,7 @@ fn get_stdout<T: AsyncRead + Unpin + Send + 'static>(
             let decoded = encoding::all::WINDOWS_949
                 .decode(&buffer, DecoderTrap::Replace)
                 .unwrap_or_else(|err_txt| format!("<decoding error>: {}", err_txt));
-            println!("{:?}", decoded.clone());
+            println!("{}", decoded.clone().trim());
             tokio::task::yield_now().await;
             std::io::stdout().flush().unwrap();
             if let Err(e) = window.emit(
@@ -226,7 +231,8 @@ fn get_stdout<T: AsyncRead + Unpin + Send + 'static>(
                     task_id: task_id.clone(),
                     task_status: task_status.clone(),
                     exit_code: None,
-                    message: decoded.clone(),
+                    message: decoded.clone().trim().to_string(),
+                    tm_sec: now_sec(),
                 },
             ) {
                 println!("{:?}", e);

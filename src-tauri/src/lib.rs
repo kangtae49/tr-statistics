@@ -9,13 +9,6 @@ mod tasks {
     pub mod shell_task;
 }
 
-use crate::app_state::AppState;
-use crate::err::Result;
-use crate::fs::read_utf8;
-use crate::menu::create_menu;
-use crate::setting::Setting;
-use crate::tasks::shell_task::{stop, ShellJob, TaskNotify, TaskStatus};
-use crate::utils::get_resource_path;
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -25,6 +18,14 @@ use tauri::{Emitter, State};
 use tauri_specta::{collect_commands, Builder};
 use tokio::sync::RwLock;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+
+use crate::app_state::AppState;
+use crate::err::Result;
+use crate::fs::{read_utf8, read_meta, FileInfo};
+use crate::menu::create_menu;
+use crate::setting::Setting;
+use crate::tasks::shell_task::{stop, ShellJob, TaskNotify, TaskStatus};
+use crate::utils::{get_resource_path, now_sec};
 
 #[tauri::command]
 #[specta::specta]
@@ -50,6 +51,7 @@ async fn run_shell(
             task_status: TaskStatus::Begin,
             exit_code: None,
             message: "Begin".to_string(),
+            tm_sec: now_sec(),
         },
     )?;
     match shell_task.run(state, window.clone()).await {
@@ -61,6 +63,7 @@ async fn run_shell(
                     task_status: TaskStatus::End,
                     exit_code,
                     message: "End".to_string(),
+                    tm_sec: now_sec(),
                 },
             )?;
         }
@@ -72,6 +75,7 @@ async fn run_shell(
                     task_status: TaskStatus::End,
                     exit_code: None,
                     message: e.to_string(),
+                    tm_sec: now_sec(),
                 },
             )?;
         }
@@ -85,12 +89,26 @@ async fn stop_shell(state: State<'_, AppState>, task_id: String) -> Result<()> {
     stop(state, task_id).await
 }
 
+#[tauri::command]
+#[specta::specta]
+async fn read_file(path: String) -> Result<String> {
+    read_utf8(path)
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn read_file_info(path: String) -> Result<FileInfo> {
+    read_meta(path)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
     let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
         run_shell,
         stop_shell,
-        get_setting
+        get_setting,
+        read_file,
+        read_file_info
     ]);
 
     #[cfg(debug_assertions)]
@@ -104,12 +122,12 @@ pub async fn run() {
 
         let ts = Typescript::default().bigint(BigIntExportBehavior::Number);
         builder
-            .export(ts, bindings_path)
+            .export(ts.clone(), bindings_path)
             .expect("Failed to export typescript bindings");
 
         let mut types = TypeCollection::default();
         types.register::<TaskNotify>();
-        let task_notify_str = Typescript::default().export(&types).unwrap();
+        let task_notify_str = ts.clone().export(&types).unwrap();
         let mut file = OpenOptions::new()
             .append(true)
             .create(true)

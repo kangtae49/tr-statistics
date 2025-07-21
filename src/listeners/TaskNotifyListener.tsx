@@ -1,19 +1,19 @@
 import {useEffect} from "react";
 import {listen} from "@tauri-apps/api/event";
 import {TaskNotify} from "@/bindings";
-import {useTaskNotifyListStore} from "@/stores/taskNotifyListStore.ts";
+import {useTaskNotifyMapStore} from "@/stores/taskNotifyMapStore.ts";
 
 function TaskNotifyListener() {
-  const setTaskNotifyList = useTaskNotifyListStore((state) => state.setTaskNotifyList);
-  const addTaskNotify = useTaskNotifyListStore((state) => state.addTaskNotify);
+  const setTaskNotifyList = useTaskNotifyMapStore((state) => state.setTaskNotifyList);
+  const addTaskNotify = useTaskNotifyMapStore((state) => state.addTaskNotify);
 
   useEffect(() => {
     const unlisten = listen<TaskNotify>('shell_task', (event) => {
       let taskNotify = event.payload;
       if (taskNotify.task_status === "Begin") {
-        setTaskNotifyList([taskNotify])
+        setTaskNotifyList(taskNotify.task_id, [taskNotify])
       } else {
-        addTaskNotify(taskNotify);
+        addTaskNotify(taskNotify.task_id, taskNotify);
       }
     });
     return () => {
