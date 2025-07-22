@@ -12,7 +12,7 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::process::Command;
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
-use std::os::windows::process::CommandExt;
+// use std::os::windows::process::CommandExt;
 use windows::Win32::System::Threading::CREATE_NO_WINDOW;
 
 use crate::app_state::AppState;

@@ -29,12 +29,12 @@ function StdOutView() {
           ref={listRef}
         >
           {({ index, style }) => {
-            const taskNotify = taskNotifyList[index]
+            const taskNotify: TaskNotify = taskNotifyList[index]
             const date = new Date(taskNotify.tm_sec * 1000);
             const date_fmt = format(date, "yyyy-MM-dd HH:mm:ss");
-
+            const color = taskNotify.task_status == "Stderr" ? "red" : undefined;
             return taskNotify ? (
-              <div className="line" key={index} style={style}>
+              <div className="line" key={index} style={{...style, color}}>
                 {date_fmt.split(" ")[1]} : {taskNotify.message}
               </div>
             ) : null

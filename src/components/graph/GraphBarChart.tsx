@@ -16,10 +16,9 @@ const options = {
   },
 };
 
-const labels = ["1월", "2월", "3월", "4월", "5월", "6월"];
 
 const data = {
-  labels,
+  labels: ["1월", "2월", "3월", "4월", "5월", "6월"],
   datasets: [
     {
       label: "2024년",
@@ -29,11 +28,13 @@ const data = {
   ],
 };
 
-// type Prop = {
-//   style?: React.CSSProperties
-// }
+type Prop = {
+  style?: React.CSSProperties
+  options: object
+  data: object
+}
 
-function GraphBarChart() {
+function GraphBarChart({style, options, data}: Prop) {
   // const chartRef = useRef<any>(null);
   //
   // useEffect(() => {
@@ -49,7 +50,7 @@ function GraphBarChart() {
 
   return (
     // <Bar ref={chartRef} options={options} data={data} style={style}/>
-    <Bar options={options} data={data} />
+    <Bar options={options} data={data} style={style} />
   )
 }
 

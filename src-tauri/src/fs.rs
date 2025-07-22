@@ -1,10 +1,10 @@
-use std::path::Path;
+use std::path::{absolute, Path};
 // use chardetng::EncodingDetector;
 // use encoding::{DecoderTrap, EncodingRef};
 // use encoding_rs::Encoding;
 // use tokio::io::AsyncReadExt;
 use crate::err::{Result};
-use std::time::{UNIX_EPOCH};
+// use std::time::{UNIX_EPOCH};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, skip_serializing_none};
@@ -18,12 +18,14 @@ pub fn read_utf8<P: AsRef<Path>>(path: P) -> Result<String> {
 #[serde_as]
 #[derive(Type, Serialize, Deserialize, Clone, Debug)]
 pub struct FileInfo {
+    pub path: String,
     pub exists: bool,
     pub is_dir: Option<bool>,
     pub modified: Option<i64>,
     pub sz: Option<u64>,
 }
 pub fn read_meta<P: AsRef<Path>>(path: P) -> Result<FileInfo> {
+    let abs = absolute(path.as_ref())?.to_string_lossy().to_string();
     if path.as_ref().exists() {
         let meta = path.as_ref().metadata()?;
         let modified = meta.modified()?;
@@ -32,6 +34,7 @@ pub fn read_meta<P: AsRef<Path>>(path: P) -> Result<FileInfo> {
         let sec = datetime.timestamp();
         let sz = meta.len();
         Ok(FileInfo {
+            path: abs,
             exists: true,
             is_dir: Some(meta.is_dir()),
             modified: Some(sec),
@@ -39,6 +42,7 @@ pub fn read_meta<P: AsRef<Path>>(path: P) -> Result<FileInfo> {
         })
     } else {
         Ok(FileInfo {
+            path: abs,
             exists: false,
             is_dir: None,
             modified: None,

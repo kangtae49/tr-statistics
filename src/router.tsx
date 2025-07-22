@@ -1,5 +1,5 @@
 import {createBrowserRouter} from "react-router-dom";
-import TasksView from "@/routes/TasksView.tsx";
+import TaskView from "@/routes/TaskView.tsx";
 import ErrorView from "@/components/ErrorView.tsx";
 import AboutView from "@/routes/AboutView.tsx";
 import RootLayout from "@/routes/RootLayout.tsx";
@@ -14,11 +14,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <TasksView />,
+        element: <TaskView />,
       },
       {
-        path: '/tasks',
-        element: <TasksView />,
+        path: '/task',
+        element: <TaskView />,
       },
       {
         path: '/bar-chart',

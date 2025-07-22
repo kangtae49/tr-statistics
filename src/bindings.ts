@@ -59,7 +59,7 @@ async readFileInfo(path: string) : Promise<Result<FileInfo, ApiError>> {
 
 export type ApiError = { Error: string } | { TauriError: string } | { ReqwestError: string } | { Io: string } | { ParseError: string } | { JsonError: string } | { GlobError: string }
 export type ArgType = "String"
-export type FileInfo = { exists: boolean; is_dir?: boolean | null; modified?: number | null; sz?: number | null }
+export type FileInfo = { path: string; exists: boolean; is_dir?: boolean | null; modified?: number | null; sz?: number | null }
 export type ScriptArg = { arg_type: ArgType; name: string; description: string; default: string }
 export type ScriptInfo = { name: string; description: string; shell_type: ShellType; script: string; args: ScriptArg[] }
 export type Setting = { script_files: ScriptInfo[] }

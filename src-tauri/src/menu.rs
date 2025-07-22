@@ -33,9 +33,9 @@ pub fn create_menu(app: &mut App) -> Result<()> {
                 println!("quit event");
                 app_handle.exit(0);
             }
-            "tasks" => {
-                println!("tasks event");
-                app_handle.emit("navigate", "/tasks").unwrap();
+            "task" => {
+                println!("task event");
+                app_handle.emit("navigate", "/task").unwrap();
             }
             "about" => {
                 println!("about event");
