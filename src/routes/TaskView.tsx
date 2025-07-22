@@ -6,8 +6,8 @@ import {faCirclePlay, faCircleStop} from '@fortawesome/free-solid-svg-icons'
 import {listen} from "@tauri-apps/api/event";
 import StdOutView from "@/components/inputs/StdOutView.tsx";
 import InputSaveFileDialog from "@/components/inputs/InputSaveFileDialog.tsx";
-import GraphBarChart from "@/components/graph/GraphBarChart.tsx";
 import {ChartData} from "chart.js";
+import GraphBarChart from "@/components/graph/GraphBarChart.tsx";
 import GraphLineChart from "@/components/graph/GraphLineChart.tsx";
 
 
@@ -22,6 +22,10 @@ const options = {
       display: true,
       text: "월별 매출",
     },
+    tooltip: {
+      enabled: true,
+    },
+
   },
 };
 
@@ -167,13 +171,26 @@ function makeGraphData(tsv: string) {
       }
     });
   console.log(tsvData);
+  const labels = tsvData.map(obj => obj.key).concat(['7월', '8월', '9월'])
+  let values: (number | null)[] = tsvData.map(obj => obj.value);
+  const pre_values: (number | null)[] = Array(values.length-1).fill(null).concat([values.slice(-1), 239, 260, 270]);
   return {
-    labels: tsvData.map(obj => obj.key),
+    labels: labels,
     datasets: [
       {
         label: "2025년",
-        data: tsvData.map(obj => obj.value),
+        data: values,
+        borderColor: 'rgba(75, 192, 192, 0.5)',
         backgroundColor: "rgba(75, 192, 192, 0.5)",
+        tension: 0.4,
+      },
+      {
+        label: 'Predicted',
+        data: pre_values,
+        borderColor: 'orange',
+        backgroundColor: 'orange',
+        // borderDash: [5, 5],
+        tension: 0.4,
       },
     ],
   }
