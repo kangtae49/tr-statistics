@@ -1,4 +1,4 @@
-import {ApiError, commands, Result, ScriptInfo, Setting, ShellJob} from "@/bindings.ts"
+import {ApiError, commands, FileInfo, Result, ScriptInfo, Setting, ShellJob} from "@/bindings.ts"
 import {useSettingStore} from "@/stores/settingStore.ts";
 import {useEffect, useState} from "react";
 import {FontAwesomeIcon as Icon} from '@fortawesome/react-fontawesome'
@@ -7,6 +7,8 @@ import {listen} from "@tauri-apps/api/event";
 import StdOutView from "@/components/inputs/StdOutView.tsx";
 import InputSaveFileDialog from "@/components/inputs/InputSaveFileDialog.tsx";
 import GraphBarChart from "@/components/graph/GraphBarChart.tsx";
+import {ChartData} from "chart.js";
+import GraphLineChart from "@/components/graph/GraphLineChart.tsx";
 
 
 const options = {
@@ -24,29 +26,34 @@ const options = {
 };
 
 function TaskView() {
-  const setting = useSettingStore((state) => state.setting);
+  // const setting = useSettingStore((state) => state.setting);
   const setSetting = useSettingStore((state) => state.setSetting);
   // const [inputFile, setInputFile] = useState<string>("");
   // const [inputFolder, setInputFolder] = useState<string>("");
   const [saveFile, setSaveFile] = useState<string>("");
-  const [outputFile, setOutputFile] = useState<FileInfo | null>(null);
-  const [graphData, setGraphData] = useState<object>({
+  const [outputFileInfo, setOutputFileInfo] = useState<FileInfo | null>(null);
+  const [graphData, setGraphData] = useState<ChartData>({
     labels: [],
     datasets: [
       {
-        label: "2025년",
+        label: "",
         data: [],
         backgroundColor: "rgba(75, 192, 192, 0.5)",
       },
     ],
   });
 
-  function setOutputFileInfo(saveFile: string) {
+  function changeSaveFile(saveFile: string) {
+    setSaveFile(saveFile);
+    readOutputFileInfo(saveFile);
+  }
+
+  function readOutputFileInfo(saveFile: string) {
     commands.readFileInfo(saveFile)
       .then((res) => {
         if (res.status === "ok") {
           let fileInfo = res.data;
-          setOutputFile(fileInfo);
+          setOutputFileInfo(fileInfo);
         }
       })
   }
@@ -63,7 +70,7 @@ function TaskView() {
     };
     commands.runShell(shellJob).then(() => {
       console.log("ok")
-      setOutputFileInfo(saveFile);
+      readOutputFileInfo(saveFile);
     }).catch(e => {
       console.log(e)
     })
@@ -77,15 +84,16 @@ function TaskView() {
   }
 
   useEffect(() => {
-    if (outputFile) {
-      commands.readFile(outputFile.path).then((res) => {
+    if (outputFileInfo) {
+      console.log(outputFileInfo);
+      commands.readFile(outputFileInfo.path).then((res) => {
         if(res.status == 'ok') {
           const graphData = makeGraphData(res.data);
           setGraphData(graphData);
         }
       })
     }
-  }, [outputFile]);
+  }, [outputFileInfo]);
 
   useEffect(() => {
     commands.getSetting().then((setting: Result<Setting, ApiError>) => {
@@ -126,11 +134,14 @@ function TaskView() {
             </div>
           </div>
           <div className="args">
-            <div>SaveFile: <InputSaveFileDialog onChange={setSaveFile} value={saveFile} /></div>
+            <div>SaveFile: <InputSaveFileDialog onChange={changeSaveFile} value={saveFile} /></div>
           </div>
         </div>
         <div className="graph">
-              <GraphBarChart options={options} data={graphData} />
+          <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
+            <div style={{flex: 0.5}}><GraphBarChart options={options} data={graphData} /></div>
+            <div style={{flex: 0.5}}><GraphLineChart options={options} data={graphData} /></div>
+          </div>
         </div>
       </div>
       <div className="stdout">

@@ -1,6 +1,8 @@
 
 import { Line } from "react-chartjs-2";
-
+import React from "react";
+import {ChartData} from "chart.js";
+/*
 const options = {
   responsive: true,
   plugins: {
@@ -27,9 +29,17 @@ const data = {
   ],
 };
 
-function GraphLineChart() {
+ */
+
+type Prop = {
+  style?: React.CSSProperties
+  options: object
+  data: ChartData<any>
+}
+
+function GraphLineChart({style, options, data}: Prop) {
   return (
-    <Line options={options} data={data} />
+    <Line options={options} data={data} style={style} />
   )
 }
 
