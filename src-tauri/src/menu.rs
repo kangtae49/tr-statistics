@@ -4,7 +4,7 @@ use tauri::{App, Emitter};
 
 pub fn create_menu(app: &mut App) -> Result<()> {
     let file_menu = SubmenuBuilder::new(app, "File")
-        .text("tasks", "Tasks")
+        .text("task", "Task")
         .text("open", "Open")
         .text("quit", "Quit")
         .build()?;

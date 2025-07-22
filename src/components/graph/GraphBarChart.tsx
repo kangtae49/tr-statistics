@@ -2,8 +2,8 @@ import { Bar } from "react-chartjs-2";
 import React from "react";
 import {ChartData} from "chart.js";
 
-/*
-const options = {
+
+export const sample_options = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -18,7 +18,7 @@ const options = {
 };
 
 
-const data = {
+export const sample_data = {
   labels: ["1월", "2월", "3월", "4월", "5월", "6월"],
   datasets: [
     {
@@ -28,7 +28,7 @@ const data = {
     },
   ],
 };
-*/
+
 
 type Prop = {
   style?: React.CSSProperties
